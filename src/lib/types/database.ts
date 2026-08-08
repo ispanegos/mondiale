@@ -21,7 +21,7 @@ export interface TournamentRow {
 	id: string;
 	user_id: string;
 	name: string;
-	size: 32 | 64;
+	size: 8 | 16 | 32 | 64;
 	status: TournamentStatus;
 	draw_mode: DrawMode;
 	champion_team_id: string | null;

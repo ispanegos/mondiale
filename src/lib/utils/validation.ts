@@ -5,7 +5,7 @@ export function validateTournamentName(name: string): string | null {
 	return null;
 }
 
-export function validateTeamCount(size: 32 | 64, selectedCount: number): string | null {
+export function validateTeamCount(size: 8 | 16 | 32 | 64, selectedCount: number): string | null {
 	if (selectedCount !== size) {
 		return `Seleziona esattamente ${size} squadre (${selectedCount} di ${size} selezionate).`;
 	}

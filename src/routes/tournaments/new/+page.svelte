@@ -9,7 +9,7 @@
 
 	let step = $state(1);
 	let name = $state('');
-	let size = $state<32 | 64 | null>(null);
+	let size = $state<8 | 16 | 32 | 64 | null>(null);
 	let selected = $state<Set<string>>(new Set());
 	let drawMode = $state<'random' | 'manual'>('random');
 	let search = $state('');
@@ -80,6 +80,14 @@
 		<section>
 			<h1>Numero di squadre</h1>
 			<div class="size-cards">
+				<button type="button" class:selected={size === 8} onclick={() => (size = 8)}>
+					<strong>8</strong>
+					<span>squadre</span>
+				</button>
+				<button type="button" class:selected={size === 16} onclick={() => (size = 16)}>
+					<strong>16</strong>
+					<span>squadre</span>
+				</button>
 				<button type="button" class:selected={size === 32} onclick={() => (size = 32)}>
 					<strong>32</strong>
 					<span>squadre</span>
@@ -222,16 +230,16 @@
 		font-size: 14px;
 	}
 	.size-cards {
-		display: flex;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
 		gap: 12px;
 	}
 	.size-cards button {
-		flex: 1;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 4px;
-		padding: 24px;
+		padding: 20px;
 		border: 2px solid var(--color-border);
 		border-radius: 16px;
 		background: var(--color-surface);

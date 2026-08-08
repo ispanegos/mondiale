@@ -25,7 +25,7 @@ export const actions: Actions = {
 		const nameError = validateTournamentName(name);
 		if (nameError) return fail(400, { error: nameError });
 
-		if (size !== 32 && size !== 64) {
+		if (![8, 16, 32, 64].includes(size)) {
 			return fail(400, { error: 'Numero di squadre non valido.' });
 		}
 
