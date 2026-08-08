@@ -9,6 +9,8 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const rounds = $derived(groupMainBracketByRound(data.matches));
+	const earlyRounds = $derived(rounds.slice(0, -1));
+	const finalRound = $derived(rounds[rounds.length - 1]);
 	const thirdPlaceMatch = $derived(findThirdPlaceMatch(data.matches));
 	const teamsById = $derived(new Map(data.tournamentTeams.map((tt: any) => [tt.team_id, tt.teams])));
 
@@ -38,7 +40,7 @@
 	{/if}
 
 	<h2>Tabellone (sola lettura)</h2>
-	{#each rounds as round (round.roundNumber)}
+	{#each earlyRounds as round (round.roundNumber)}
 		<h3 class="round-title">{round.roundName}</h3>
 		<RoundView
 			matches={round.matches}
@@ -52,6 +54,10 @@
 	{#if thirdPlaceMatch}
 		<h3 class="round-title">Finale 3°/4° posto</h3>
 		<RoundView matches={[thirdPlaceMatch]} {teamsById} bonuses={data.bonuses} readonly onSelectWinner={() => {}} onToggleBonus={() => {}} />
+	{/if}
+	{#if finalRound}
+		<h3 class="round-title">Finale</h3>
+		<RoundView matches={finalRound.matches} {teamsById} bonuses={data.bonuses} readonly onSelectWinner={() => {}} onToggleBonus={() => {}} />
 	{/if}
 
 	<button type="button" class="reopen-btn" onclick={() => (confirmReopenOpen = true)}>

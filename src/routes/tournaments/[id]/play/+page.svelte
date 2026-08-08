@@ -6,7 +6,10 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	const rounds = $derived(groupMainBracketByRound(data.matches));
+	const allRounds = $derived(groupMainBracketByRound(data.matches));
+	// il turno finale viene unito alla finalina in un'unica tab "Finali"
+	const earlyRounds = $derived(allRounds.slice(0, -1));
+	const finalRound = $derived(allRounds[allRounds.length - 1]);
 	const thirdPlaceMatch = $derived(findThirdPlaceMatch(data.matches));
 	const readyToComplete = $derived(tournamentIsReadyToComplete(data.matches));
 
@@ -14,23 +17,20 @@
 		new Map(data.tournamentTeams.map((tt: any) => [tt.team_id, tt.teams]))
 	);
 
-	// tab attiva: il primo turno del bracket principale non ancora completato, o l'ultimo
-	function firstIncompleteRoundIndex(): number {
-		const idx = rounds.findIndex((r) => r.matches.some((m) => m.status !== 'completed'));
-		return idx === -1 ? rounds.length - 1 : idx;
+	// tab attiva: il primo turno non ancora completato, o le finali
+	function firstIncompleteTab(): number | 'finals' {
+		const idx = earlyRounds.findIndex((r) => r.matches.some((m) => m.status !== 'completed'));
+		if (idx !== -1) return idx;
+		return 'finals';
 	}
 
-	let activeTab = $state<number | 'third_place'>(0);
+	let activeTab = $state<number | 'finals'>(0);
 	$effect(() => {
-		activeTab = firstIncompleteRoundIndex();
+		activeTab = firstIncompleteTab();
 	});
 
 	let pendingMatchId = $state<string | null>(null);
-	let pendingWinnerTeamId = $state<string | null>(null);
-	let pendingMatchIdForm: HTMLFormElement | undefined = $state();
-	let pendingBonusForm: HTMLFormElement | undefined = $state();
 
-	// stato per l'invio dei form nascosti generati dinamicamente
 	let selectWinnerMatchId = $state('');
 	let selectWinnerTeamId = $state('');
 	let toggleBonusMatchId = $state('');
@@ -71,7 +71,7 @@
 	{/if}
 
 	<div class="tabs" role="tablist">
-		{#each rounds as round, i (round.roundNumber)}
+		{#each earlyRounds as round, i (round.roundNumber)}
 			<button
 				type="button"
 				role="tab"
@@ -82,21 +82,19 @@
 				{round.roundName}
 			</button>
 		{/each}
-		{#if thirdPlaceMatch}
-			<button
-				type="button"
-				role="tab"
-				aria-selected={activeTab === 'third_place'}
-				class:active={activeTab === 'third_place'}
-				onclick={() => (activeTab = 'third_place')}
-			>
-				3°/4° posto
-			</button>
-		{/if}
+		<button
+			type="button"
+			role="tab"
+			aria-selected={activeTab === 'finals'}
+			class:active={activeTab === 'finals'}
+			onclick={() => (activeTab = 'finals')}
+		>
+			Finali
+		</button>
 	</div>
 
 	<div class="round-content">
-		{#each rounds as round, i (round.roundNumber)}
+		{#each earlyRounds as round, i (round.roundNumber)}
 			{#if activeTab === i}
 				<RoundView
 					matches={round.matches}
@@ -108,15 +106,29 @@
 				/>
 			{/if}
 		{/each}
-		{#if activeTab === 'third_place' && thirdPlaceMatch}
-			<RoundView
-				matches={[thirdPlaceMatch]}
-				{teamsById}
-				bonuses={data.bonuses}
-				{pendingMatchId}
-				onSelectWinner={handleSelectWinner}
-				onToggleBonus={handleToggleBonus}
-			/>
+		{#if activeTab === 'finals'}
+			{#if thirdPlaceMatch}
+				<h2 class="section-title">Finale 3°/4° posto</h2>
+				<RoundView
+					matches={[thirdPlaceMatch]}
+					{teamsById}
+					bonuses={data.bonuses}
+					{pendingMatchId}
+					onSelectWinner={handleSelectWinner}
+					onToggleBonus={handleToggleBonus}
+				/>
+			{/if}
+			{#if finalRound}
+				<h2 class="section-title">Finale</h2>
+				<RoundView
+					matches={finalRound.matches}
+					{teamsById}
+					bonuses={data.bonuses}
+					{pendingMatchId}
+					onSelectWinner={handleSelectWinner}
+					onToggleBonus={handleToggleBonus}
+				/>
+			{/if}
 		{/if}
 	</div>
 
@@ -205,6 +217,15 @@
 		background: var(--color-primary);
 		border-color: var(--color-primary);
 		color: white;
+	}
+	.section-title {
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--color-primary);
+		margin: 20px 0 8px;
+	}
+	.section-title:first-child {
+		margin-top: 0;
 	}
 	.complete-btn {
 		width: 100%;
