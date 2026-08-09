@@ -194,7 +194,7 @@
 	.page {
 		max-width: 560px;
 		margin: 0 auto;
-		padding: 20px 16px 100px;
+		padding: 20px 16px calc(140px + env(safe-area-inset-bottom));
 	}
 	.steps-indicator {
 		display: flex;
@@ -338,7 +338,7 @@
 	}
 	.nav-buttons {
 		position: fixed;
-		bottom: 64px;
+		bottom: calc(66px + env(safe-area-inset-bottom));
 		left: 0;
 		right: 0;
 		display: flex;
@@ -346,6 +346,7 @@
 		padding: 12px 16px;
 		background: var(--color-surface);
 		border-top: 1px solid var(--color-border);
+		box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
 		z-index: 15;
 	}
 	button.primary {

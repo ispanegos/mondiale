@@ -1,8 +1,7 @@
 <script lang="ts">
 	import TeamFlag from '$lib/components/teams/TeamFlag.svelte';
 	import StatCard from '$lib/components/stats/StatCard.svelte';
-	import { formatDate, formatPercent } from '$lib/utils/formatting';
-	import { placementLabel } from '$lib/utils/scoring';
+	import { formatPercent } from '$lib/utils/formatting';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -36,20 +35,39 @@
 		<p class="empty">Questa squadra non ha ancora disputato tornei.</p>
 	{/if}
 
-	{#if data.history.length > 0}
-		<h2>Storico tornei</h2>
-		<ul class="history">
-			{#each data.history as h (h.tournament.id)}
+	{#if data.opponentStats}
+		<h2>Avversarie</h2>
+		<ul class="opponents">
+			{#if data.opponentStats.mostFaced}
 				<li>
-					<a href="/tournaments/{h.tournament.id}">
-						<strong>{h.tournament.name}</strong>
-						<span class="meta">{formatDate(h.tournament.completed_at)}</span>
-						{#if h.finalPosition}
-							<span class="placement">{placementLabel(h.finalPosition)} · {h.placementPoints} pt piazzamento</span>
-						{/if}
-					</a>
+					<TeamFlag emoji={data.opponentStats.mostFaced.team.flag_emoji} url={data.opponentStats.mostFaced.team.flag_url} size={28} />
+					<div class="opp-info">
+						<span class="opp-label">Più affrontata</span>
+						<span class="opp-name">{data.opponentStats.mostFaced.team.name}</span>
+					</div>
+					<span class="opp-count">{data.opponentStats.mostFaced.count}</span>
 				</li>
-			{/each}
+			{/if}
+			{#if data.opponentStats.mostWinsAgainst}
+				<li>
+					<TeamFlag emoji={data.opponentStats.mostWinsAgainst.team.flag_emoji} url={data.opponentStats.mostWinsAgainst.team.flag_url} size={28} />
+					<div class="opp-info">
+						<span class="opp-label">Più vittorie contro</span>
+						<span class="opp-name">{data.opponentStats.mostWinsAgainst.team.name}</span>
+					</div>
+					<span class="opp-count win">{data.opponentStats.mostWinsAgainst.count}</span>
+				</li>
+			{/if}
+			{#if data.opponentStats.mostLossesAgainst}
+				<li>
+					<TeamFlag emoji={data.opponentStats.mostLossesAgainst.team.flag_emoji} url={data.opponentStats.mostLossesAgainst.team.flag_url} size={28} />
+					<div class="opp-info">
+						<span class="opp-label">Più sconfitte contro</span>
+						<span class="opp-name">{data.opponentStats.mostLossesAgainst.team.name}</span>
+					</div>
+					<span class="opp-count loss">{data.opponentStats.mostLossesAgainst.count}</span>
+				</li>
+			{/if}
 		</ul>
 	{/if}
 </div>
@@ -89,7 +107,7 @@
 		color: var(--color-text-secondary);
 		margin: 24px 0 8px;
 	}
-	.history {
+	.opponents {
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -97,24 +115,41 @@
 		flex-direction: column;
 		gap: 8px;
 	}
-	.history a {
+	.opponents li {
 		display: flex;
-		flex-direction: column;
+		align-items: center;
+		gap: 12px;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: 14px;
 		padding: 12px 14px;
-		text-decoration: none;
-		color: var(--color-text);
-		gap: 2px;
 	}
-	.meta {
+	.opp-info {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		flex: 1;
+		min-width: 0;
+	}
+	.opp-label {
 		font-size: 12px;
 		color: var(--color-text-secondary);
 	}
-	.placement {
-		font-size: 12px;
-		color: var(--color-primary);
+	.opp-name {
+		font-size: 15px;
 		font-weight: 600;
+		color: var(--color-text);
+	}
+	.opp-count {
+		font-size: 18px;
+		font-weight: 700;
+		color: var(--color-primary);
+		flex-shrink: 0;
+	}
+	.opp-count.win {
+		color: #1a8a4a;
+	}
+	.opp-count.loss {
+		color: #c0392b;
 	}
 </style>
