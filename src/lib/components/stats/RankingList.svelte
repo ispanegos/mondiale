@@ -1,5 +1,6 @@
 <script lang="ts">
 	import TeamFlag from '$lib/components/teams/TeamFlag.svelte';
+	import { formatPercent } from '$lib/utils/formatting';
 	import type { RankedTeam } from '$lib/server/ranking';
 
 	type SortKey = 'total_points' | 'first_places' | 'podiums' | 'win_rate' | 'bonus_points';
@@ -49,9 +50,18 @@
 				<span class="pos">{positionFor(i)}</span>
 				<TeamFlag emoji={entry.team.flag_emoji} url={entry.team.flag_url} size={24} />
 				<span class="name">{entry.team.name}</span>
-				<span class="stat">{entry.tournaments_played}🏟️</span>
-				<span class="stat">{entry.podiums}🏅</span>
-				<span class="points">{entry.total_points} pt</span>
+				{#if sortBy === 'total_points'}
+					<span class="points">{entry.total_points} pt</span>
+				{:else if sortBy === 'first_places'}
+					<span class="points">{entry.first_places} 🏆</span>
+				{:else if sortBy === 'podiums'}
+					<span class="stat">1° {entry.first_places} · 2° {entry.second_places} · 3° {entry.third_places}</span>
+					<span class="points">{entry.podiums} 🏅</span>
+				{:else if sortBy === 'win_rate'}
+					<span class="points">{formatPercent(entry.win_rate)}</span>
+				{:else if sortBy === 'bonus_points'}
+					<span class="points">{entry.bonus_points} ⭐</span>
+				{/if}
 			</a>
 		</li>
 	{/each}
@@ -90,6 +100,7 @@
 	}
 	.name {
 		flex: 1;
+		min-width: 0;
 		font-weight: 600;
 		font-size: 14px;
 		overflow: hidden;
@@ -99,6 +110,7 @@
 	.stat {
 		font-size: 11px;
 		color: var(--color-text-secondary);
+		white-space: nowrap;
 	}
 	.points {
 		font-weight: 700;
