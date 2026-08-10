@@ -6,9 +6,22 @@
 
 	let { entries, sortBy = 'total_points' }: { entries: RankedTeam[]; sortBy?: SortKey } = $props();
 
+	// Criteri di spareggio a parità sul valore ordinante scelto (definiscono solo
+	// l'ordine di visualizzazione tra pari merito: la posizione resta la stessa).
+	const tiebreakers: Record<SortKey, SortKey[]> = {
+		total_points: ['win_rate'],
+		first_places: ['total_points', 'win_rate'],
+		podiums: ['total_points', 'win_rate'],
+		win_rate: ['total_points'],
+		bonus_points: ['total_points', 'win_rate']
+	};
+
 	const sorted = $derived(
 		[...entries].sort((a, b) => {
 			if (b[sortBy] !== a[sortBy]) return b[sortBy] - a[sortBy];
+			for (const key of tiebreakers[sortBy]) {
+				if (b[key] !== a[key]) return b[key] - a[key];
+			}
 			return a.team.name.localeCompare(b.team.name, 'it');
 		})
 	);
