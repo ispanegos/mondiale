@@ -26,9 +26,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const tally = computeOpponentTally(matches ?? [], params.id);
 
 	let opponentStats: {
-		mostFaced: { team: TeamRow; count: number } | null;
-		mostWinsAgainst: { team: TeamRow; count: number } | null;
-		mostLossesAgainst: { team: TeamRow; count: number } | null;
+		mostFaced: { team: TeamRow; count: number }[];
+		mostWinsAgainst: { team: TeamRow; count: number }[];
+		mostLossesAgainst: { team: TeamRow; count: number }[];
 	} | null = null;
 
 	if (tally.size > 0) {
@@ -40,20 +40,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 		const teamsById = new Map((opponentTeams ?? []).map((t: any) => [t.id, t as TeamRow]));
 
-		const mostFacedEntry = topBy(tally, (t) => t.played);
-		const mostWinsEntry = topBy(tally, (t) => t.won, true);
-		const mostLossesEntry = topBy(tally, (t) => t.lost, true);
+		const mostFacedList = topAllBy(tally, (t) => t.played);
+		const mostWinsList = topAllBy(tally, (t) => t.won, true);
+		const mostLossesList = topAllBy(tally, (t) => t.lost, true);
 
 		opponentStats = {
-			mostFaced: mostFacedEntry
-				? { team: teamsById.get(mostFacedEntry.teamId)!, count: mostFacedEntry.played }
-				: null,
-			mostWinsAgainst: mostWinsEntry
-				? { team: teamsById.get(mostWinsEntry.teamId)!, count: mostWinsEntry.won }
-				: null,
-			mostLossesAgainst: mostLossesEntry
-				? { team: teamsById.get(mostLossesEntry.teamId)!, count: mostLossesEntry.lost }
-				: null
+			mostFaced: mostFacedList.map((t) => ({ team: teamsById.get(t.teamId)!, count: t.played })).filter((e) => e.team),
+			mostWinsAgainst: mostWinsList.map((t) => ({ team: teamsById.get(t.teamId)!, count: t.won })).filter((e) => e.team),
+			mostLossesAgainst: mostLossesList
+				.map((t) => ({ team: teamsById.get(t.teamId)!, count: t.lost }))
+				.filter((e) => e.team)
 		};
 	}
 
@@ -93,16 +89,17 @@ function computeOpponentTally(matches: any[], teamId: string) {
 	return tally;
 }
 
-function topBy(
+function topAllBy(
 	tally: Map<string, OpponentTally>,
 	getValue: (t: OpponentTally) => number,
 	requirePositive = false
-): OpponentTally | null {
-	let best: OpponentTally | null = null;
+): OpponentTally[] {
+	let bestValue = -Infinity;
 	for (const t of tally.values()) {
 		const value = getValue(t);
 		if (requirePositive && value <= 0) continue;
-		if (!best || value > getValue(best)) best = t;
+		if (value > bestValue) bestValue = value;
 	}
-	return best;
+	if (bestValue === -Infinity) return [];
+	return Array.from(tally.values()).filter((t) => getValue(t) === bestValue);
 }

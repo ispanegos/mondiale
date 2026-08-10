@@ -37,38 +37,50 @@
 
 	{#if data.opponentStats}
 		<h2>Avversarie</h2>
-		<ul class="opponents">
-			{#if data.opponentStats.mostFaced}
-				<li>
-					<TeamFlag emoji={data.opponentStats.mostFaced.team.flag_emoji} url={data.opponentStats.mostFaced.team.flag_url} size={28} />
-					<div class="opp-info">
-						<span class="opp-label">Più affrontata</span>
-						<span class="opp-name">{data.opponentStats.mostFaced.team.name}</span>
-					</div>
-					<span class="opp-count">{data.opponentStats.mostFaced.count}</span>
-				</li>
+		<div class="opp-sections">
+			{#if data.opponentStats.mostFaced.length > 0}
+				<div class="opp-section">
+					<p class="opp-label">Più affrontata{data.opponentStats.mostFaced.length > 1 ? 'e' : ''}</p>
+					<ul class="opponents">
+						{#each data.opponentStats.mostFaced as o (o.team.id)}
+							<li>
+								<TeamFlag emoji={o.team.flag_emoji} url={o.team.flag_url} size={28} />
+								<span class="opp-name">{o.team.name}</span>
+								<span class="opp-count">{o.count}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
 			{/if}
-			{#if data.opponentStats.mostWinsAgainst}
-				<li>
-					<TeamFlag emoji={data.opponentStats.mostWinsAgainst.team.flag_emoji} url={data.opponentStats.mostWinsAgainst.team.flag_url} size={28} />
-					<div class="opp-info">
-						<span class="opp-label">Più vittorie contro</span>
-						<span class="opp-name">{data.opponentStats.mostWinsAgainst.team.name}</span>
-					</div>
-					<span class="opp-count win">{data.opponentStats.mostWinsAgainst.count}</span>
-				</li>
+			{#if data.opponentStats.mostWinsAgainst.length > 0}
+				<div class="opp-section">
+					<p class="opp-label">Più vittorie contro</p>
+					<ul class="opponents">
+						{#each data.opponentStats.mostWinsAgainst as o (o.team.id)}
+							<li>
+								<TeamFlag emoji={o.team.flag_emoji} url={o.team.flag_url} size={28} />
+								<span class="opp-name">{o.team.name}</span>
+								<span class="opp-count win">{o.count}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
 			{/if}
-			{#if data.opponentStats.mostLossesAgainst}
-				<li>
-					<TeamFlag emoji={data.opponentStats.mostLossesAgainst.team.flag_emoji} url={data.opponentStats.mostLossesAgainst.team.flag_url} size={28} />
-					<div class="opp-info">
-						<span class="opp-label">Più sconfitte contro</span>
-						<span class="opp-name">{data.opponentStats.mostLossesAgainst.team.name}</span>
-					</div>
-					<span class="opp-count loss">{data.opponentStats.mostLossesAgainst.count}</span>
-				</li>
+			{#if data.opponentStats.mostLossesAgainst.length > 0}
+				<div class="opp-section">
+					<p class="opp-label">Più sconfitte contro</p>
+					<ul class="opponents">
+						{#each data.opponentStats.mostLossesAgainst as o (o.team.id)}
+							<li>
+								<TeamFlag emoji={o.team.flag_emoji} url={o.team.flag_url} size={28} />
+								<span class="opp-name">{o.team.name}</span>
+								<span class="opp-count loss">{o.count}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
 			{/if}
-		</ul>
+		</div>
 	{/if}
 </div>
 
@@ -107,6 +119,16 @@
 		color: var(--color-text-secondary);
 		margin: 24px 0 8px;
 	}
+	.opp-sections {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.opp-section {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
 	.opponents {
 		list-style: none;
 		margin: 0;
@@ -124,21 +146,20 @@
 		border-radius: 14px;
 		padding: 12px 14px;
 	}
-	.opp-info {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		flex: 1;
-		min-width: 0;
-	}
 	.opp-label {
+		margin: 0;
 		font-size: 12px;
 		color: var(--color-text-secondary);
 	}
 	.opp-name {
+		flex: 1;
+		min-width: 0;
 		font-size: 15px;
 		font-weight: 600;
 		color: var(--color-text);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.opp-count {
 		font-size: 18px;

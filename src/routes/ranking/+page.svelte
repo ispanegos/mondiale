@@ -5,9 +5,17 @@
 
 	let { data }: { data: PageData } = $props();
 
-	// Filtri predisposti; "Generale" e' l'unico implementato in questa versione,
-	// gli altri restano pronti per un filtro temporale successivo.
-	let segment = $state<'general' | 'last5' | 'year'>('general');
+	type SortKey = 'total_points' | 'first_places' | 'podiums' | 'win_rate' | 'bonus_points';
+
+	const sortOptions: { key: SortKey; label: string }[] = [
+		{ key: 'total_points', label: 'Punti' },
+		{ key: 'first_places', label: 'Titoli' },
+		{ key: 'podiums', label: 'Podi' },
+		{ key: 'win_rate', label: 'Win rate %' },
+		{ key: 'bonus_points', label: 'Bonus' }
+	];
+
+	let sortBy = $state<SortKey>('total_points');
 </script>
 
 <svelte:head>
@@ -18,19 +26,17 @@
 	<h1>Classifica generale</h1>
 
 	<div class="segments">
-		<button type="button" class:active={segment === 'general'} onclick={() => (segment = 'general')}>Generale</button>
-		<button type="button" class:active={segment === 'last5'} disabled onclick={() => (segment = 'last5')}>
-			Ultimi 5 tornei
-		</button>
-		<button type="button" class:active={segment === 'year'} disabled onclick={() => (segment = 'year')}>
-			Anno corrente
-		</button>
+		{#each sortOptions as opt (opt.key)}
+			<button type="button" class:active={sortBy === opt.key} onclick={() => (sortBy = opt.key)}>
+				{opt.label}
+			</button>
+		{/each}
 	</div>
 
 	{#if data.ranking.length === 0}
 		<EmptyState title="Classifica vuota" description="Completa il tuo primo torneo per vedere la classifica." />
 	{:else}
-		<RankingList entries={data.ranking} />
+		<RankingList entries={data.ranking} {sortBy} />
 	{/if}
 </div>
 
