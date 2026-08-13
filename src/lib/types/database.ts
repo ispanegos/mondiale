@@ -169,7 +169,6 @@ export interface Database {
 		Functions: {
 			create_tournament: {
 				Args: {
-					p_name: string;
 					p_size: number;
 					p_draw_mode: DrawMode;
 					p_team_ids: string[];
@@ -178,7 +177,6 @@ export interface Database {
 			};
 			create_swiss_tournament: {
 				Args: {
-					p_name: string;
 					p_team_ids: string[];
 				};
 				Returns: string;

@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import TeamFlag from '$lib/components/teams/TeamFlag.svelte';
-	import { validateTournamentName } from '$lib/utils/validation';
 	import { pickRandomTeams, pickBestTeams } from '$lib/utils/bracket';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let step = $state(1);
-	let name = $state('');
 	let format = $state<'knockout' | 'swiss'>('knockout');
 	let size = $state<8 | 16 | 32 | 64 | null>(null);
 	let selected = $state<Set<string>>(new Set());
@@ -16,17 +14,14 @@
 	let search = $state('');
 	let submitting = $state(false);
 
-	const nameError = $derived(name.length > 0 ? validateTournamentName(name) : null);
-
 	const filteredTeams = $derived(
 		data.teams.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
 	);
 
-	// Sequenza di step effettiva: per lo svizzero (fisso a 64 squadre, sempre
-	// sorteggio casuale) si saltano lo step "numero squadre" e "ordine tabellone".
-	const stepSequence = $derived(
-		format === 'swiss' ? [1, 2, 4, 6] : [1, 2, 3, 4, 5, 6]
-	);
+	// Il nome del torneo e' automatico (ED n / Swiss n, sequenziale): niente
+	// step per digitarlo. Per lo svizzero (fisso a 64 squadre, sempre sorteggio
+	// casuale) si saltano anche lo step "numero squadre" e "ordine tabellone".
+	const stepSequence = $derived(format === 'swiss' ? [1, 3, 5] : [1, 2, 3, 4, 5]);
 	const stepIndex = $derived(stepSequence.indexOf(step));
 
 	$effect(() => {
@@ -59,10 +54,9 @@
 	}
 
 	function canGoNext(): boolean {
-		if (step === 1) return !nameError && name.trim().length >= 2;
-		if (step === 2) return format === 'knockout' || format === 'swiss';
-		if (step === 3) return size !== null;
-		if (step === 4) return size !== null && selected.size === size;
+		if (step === 1) return format === 'knockout' || format === 'swiss';
+		if (step === 2) return size !== null;
+		if (step === 3) return size !== null && selected.size === size;
 		return true;
 	}
 
@@ -90,17 +84,6 @@
 
 	{#if step === 1}
 		<section>
-			<h1>Nome del torneo</h1>
-			<input
-				type="text"
-				placeholder="Es. Mondiale di Casa"
-				bind:value={name}
-				maxlength="60"
-			/>
-			{#if nameError}<p class="error">{nameError}</p>{/if}
-		</section>
-	{:else if step === 2}
-		<section>
 			<h1>Formato del torneo</h1>
 			<div class="draw-options">
 				<button type="button" class:selected={format === 'knockout'} onclick={() => (format = 'knockout')}>
@@ -116,7 +99,7 @@
 				</button>
 			</div>
 		</section>
-	{:else if step === 3}
+	{:else if step === 2}
 		<section>
 			<h1>Numero di squadre</h1>
 			<div class="size-cards">
@@ -138,7 +121,7 @@
 				</button>
 			</div>
 		</section>
-	{:else if step === 4 && size}
+	{:else if step === 3 && size}
 		<section>
 			<h1>Seleziona le squadre</h1>
 			<p class="counter">{selected.size} di {size} selezionate</p>
@@ -165,7 +148,7 @@
 				{/each}
 			</ul>
 		</section>
-	{:else if step === 5}
+	{:else if step === 4}
 		<section>
 			<h1>Ordine del tabellone</h1>
 			<div class="draw-options">
@@ -180,12 +163,10 @@
 				<p class="hint">Verranno usate nell'ordine in cui le hai selezionate al passaggio precedente.</p>
 			{/if}
 		</section>
-	{:else if step === 6 && size}
+	{:else if step === 5 && size}
 		<section>
 			<h1>Riepilogo</h1>
 			<dl class="summary">
-				<dt>Nome</dt>
-				<dd>{name}</dd>
 				<dt>Formato</dt>
 				<dd>{format === 'knockout' ? 'Eliminazione diretta' : 'Svizzero'}</dd>
 				<dt>Squadre</dt>
@@ -197,6 +178,8 @@
 					<dt>Sorteggio</dt>
 					<dd>Casuale (turno 1 e semifinali finali)</dd>
 				{/if}
+				<dt>Nome</dt>
+				<dd>Automatico ({format === 'knockout' ? 'ED' : 'Swiss'} + numero progressivo)</dd>
 			</dl>
 
 			{#if form?.error}
@@ -214,7 +197,6 @@
 					};
 				}}
 			>
-				<input type="hidden" name="name" value={name} />
 				<input type="hidden" name="format" value={format} />
 				<input type="hidden" name="size" value={size} />
 				<input type="hidden" name="draw_mode" value={drawMode} />

@@ -2,7 +2,6 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { listAllTeams } from '$lib/server/tournaments';
 import { getGeneralRanking } from '$lib/server/ranking';
-import { validateTournamentName } from '$lib/utils/validation';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const [teams, ranking] = await Promise.all([listAllTeams(locals.supabase), getGeneralRanking(locals.supabase)]);
@@ -17,14 +16,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	create: async ({ request, locals }) => {
 		const formData = await request.formData();
-		const name = String(formData.get('name') ?? '');
 		const format = String(formData.get('format') ?? 'knockout');
 		const size = Number(formData.get('size'));
 		const drawMode = String(formData.get('draw_mode') ?? 'random');
 		const teamIds = formData.getAll('team_id').map(String);
-
-		const nameError = validateTournamentName(name);
-		if (nameError) return fail(400, { error: nameError });
 
 		if (format !== 'knockout' && format !== 'swiss') {
 			return fail(400, { error: 'Formato torneo non valido.' });
@@ -36,7 +31,6 @@ export const actions: Actions = {
 			}
 
 			const { data, error } = await locals.supabase.rpc('create_swiss_tournament', {
-				p_name: name.trim(),
 				p_team_ids: teamIds
 			});
 
@@ -56,7 +50,6 @@ export const actions: Actions = {
 		}
 
 		const { data, error } = await locals.supabase.rpc('create_tournament', {
-			p_name: name.trim(),
 			p_size: size,
 			p_draw_mode: drawMode as 'random' | 'manual',
 			p_team_ids: teamIds

@@ -3,91 +3,47 @@
 	import { formatPercent } from '$lib/utils/formatting';
 	import type { RankedTeam } from '$lib/server/ranking';
 
-	type SortKey =
-		| 'total_points'
-		| 'matches_played'
-		| 'matches_won'
-		| 'first_places'
-		| 'podiums'
-		| 'win_rate'
-		| 'bonus_points';
+	type SortKey = 'total_points' | 'first_places' | 'podiums' | 'matches_won' | 'win_rate' | 'bonus_points';
 
 	let { entries }: { entries: RankedTeam[] } = $props();
 
+	// Ordine di colonna = ordine di priorità nello spareggio, fisso e sempre lo
+	// stesso qualunque colonna venga cliccata per ordinare: Punti > Titoli >
+	// Podi > Vittorie > Win rate > Bonus. Garantisce che due squadre non siano
+	// mai a pari posizione: la posizione e' sempre un numero unico da 1 a 64.
 	const columns: { key: SortKey; label: string; short: string }[] = [
 		{ key: 'total_points', label: 'Punti', short: 'Pt' },
-		{ key: 'matches_played', label: 'Partite giocate', short: 'PG' },
+		{ key: 'first_places', label: 'Titoli', short: '🏆' },
+		{ key: 'podiums', label: 'Podi', short: '🏅' },
 		{ key: 'matches_won', label: 'Vittorie', short: 'V' },
-		{ key: 'first_places', label: 'Titoli', short: 'T' },
-		{ key: 'podiums', label: 'Podi', short: 'Po' },
 		{ key: 'win_rate', label: 'Win rate', short: 'W%' },
 		{ key: 'bonus_points', label: 'Bonus', short: 'B' }
 	];
 
-	// Criteri di spareggio a parità sul valore ordinante scelto. Il primo della
-	// lista e' il criterio secondario evidenziato in tabella; gli altri sono
-	// spareggi successivi scelti per dare un ordinamento sempre deterministico.
-	const tiebreakers: Record<SortKey, SortKey[]> = {
-		total_points: ['win_rate', 'matches_won'],
-		matches_played: ['matches_won', 'win_rate'],
-		matches_won: ['win_rate', 'total_points'],
-		// Stile medagliere: a parità di titoli (1°), conta chi ha più 2° posti,
-		// poi chi ha più 3° posti (spareggio gestito a parte, vedi compareSecondPlaces).
-		first_places: ['total_points', 'win_rate'],
-		podiums: ['total_points', 'win_rate'],
-		win_rate: ['total_points', 'matches_won'],
-		bonus_points: ['total_points', 'win_rate']
-	};
+	const priorityOrder: SortKey[] = columns.map((c) => c.key);
 
 	let sortBy = $state<SortKey>('total_points');
-
-	function compareSecondPlaces(a: RankedTeam, b: RankedTeam): number {
-		if (b.second_places !== a.second_places) return b.second_places - a.second_places;
-		return b.third_places - a.third_places;
-	}
-
-	function compareBy(key: SortKey, a: RankedTeam, b: RankedTeam): number {
-		return b[key] - a[key];
-	}
-
-	const sorted = $derived(
-		[...entries].sort((a, b) => {
-			if (b[sortBy] !== a[sortBy]) return b[sortBy] - a[sortBy];
-
-			if (sortBy === 'first_places') {
-				const medalCompare = compareSecondPlaces(a, b);
-				if (medalCompare !== 0) return medalCompare;
-			}
-
-			for (const key of tiebreakers[sortBy]) {
-				const cmp = compareBy(key, a, b);
-				if (cmp !== 0) return cmp;
-			}
-			return a.team.name.localeCompare(b.team.name, 'it');
-		})
-	);
-
-	// Stessa posizione in caso di parità sul valore ordinante (ranking standard: 1,1,3,...).
-	const positioned = $derived(
-		sorted.map((entry, i) => ({
-			entry,
-			position: i > 0 && sorted[i - 1][sortBy] === entry[sortBy] ? null : i + 1
-		}))
-	);
-
-	function positionFor(index: number): number {
-		for (let j = index; j >= 0; j -= 1) {
-			if (positioned[j].position !== null) return positioned[j].position as number;
-		}
-		return index + 1;
-	}
 
 	function setSort(key: SortKey) {
 		sortBy = key;
 	}
 
-	// Il criterio secondario evidenziato per la colonna attualmente ordinata.
-	const highlightKey = $derived(sortBy === 'first_places' ? 'podiums' : tiebreakers[sortBy][0]);
+	// Catena di spareggio per la colonna scelta: prima il criterio cliccato,
+	// poi gli altri nell'ordine di priorità fisso (senza ripetere quello gia'
+	// usato), infine il nome squadra come ultimissima garanzia di unicita'.
+	const tiebreakChain = $derived([sortBy, ...priorityOrder.filter((k) => k !== sortBy)]);
+
+	const sorted = $derived(
+		[...entries].sort((a, b) => {
+			for (const key of tiebreakChain) {
+				if (b[key] !== a[key]) return b[key] - a[key];
+			}
+			return a.team.name.localeCompare(b.team.name, 'it');
+		})
+	);
+
+	// Il criterio secondario evidenziato: il primo della catena dopo quello scelto.
+	const highlightKey = $derived(tiebreakChain[1]);
 
 	function cellValue(entry: RankedTeam, key: SortKey): string {
 		if (key === 'win_rate') return formatPercent(entry.win_rate);
@@ -117,9 +73,9 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each positioned as { entry }, i (entry.team.id)}
+			{#each sorted as entry, i (entry.team.id)}
 				<tr>
-					<td class="col-pos">{positionFor(i)}</td>
+					<td class="col-pos">{i + 1}</td>
 					<td class="col-flag">
 						<a href="/teams/{entry.team.id}">
 							<TeamFlag emoji={entry.team.flag_emoji} url={entry.team.flag_url} size={22} />
