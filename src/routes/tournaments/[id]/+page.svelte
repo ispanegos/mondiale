@@ -3,14 +3,17 @@
 	import TournamentCelebration from '$lib/components/tournaments/TournamentCelebration.svelte';
 	import RoundView from '$lib/components/tournaments/RoundView.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import { groupMainBracketByRound, findThirdPlaceMatch } from '$lib/utils/bracket';
+	import { groupMainBracketByRound, groupSwissRoundsByRound, findThirdPlaceMatch } from '$lib/utils/bracket';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
+	const isSwiss = $derived(data.tournament.format === 'swiss');
 	const rounds = $derived(groupMainBracketByRound(data.matches));
-	const earlyRounds = $derived(rounds.slice(0, -1));
+	const earlyRounds = $derived(isSwiss ? [] : rounds.slice(0, -1));
 	const finalRound = $derived(rounds[rounds.length - 1]);
+	const swissRounds = $derived(isSwiss ? groupSwissRoundsByRound(data.matches) : []);
+	const byeTeam = $derived(data.tournamentTeams.find((tt: any) => tt.swiss_bye)?.teams ?? null);
 	const thirdPlaceMatch = $derived(findThirdPlaceMatch(data.matches));
 	const teamsById = $derived(new Map(data.tournamentTeams.map((tt: any) => [tt.team_id, tt.teams])));
 
@@ -40,17 +43,34 @@
 	{/if}
 
 	<h2>Tabellone (sola lettura)</h2>
-	{#each earlyRounds as round (round.roundNumber)}
-		<h3 class="round-title">{round.roundName}</h3>
-		<RoundView
-			matches={round.matches}
-			{teamsById}
-			bonuses={data.bonuses}
-			readonly
-			onSelectWinner={() => {}}
-			onToggleBonus={() => {}}
-		/>
-	{/each}
+	{#if isSwiss}
+		{#each swissRounds as round (round.roundNumber)}
+			<h3 class="round-title">{round.roundName}</h3>
+			{#if round.roundNumber === 7 && byeTeam}
+				<p class="bye-note">🎖️ <strong>{byeTeam.name}</strong> imbattuta: bye diretto alle finali.</p>
+			{/if}
+			<RoundView
+				matches={round.matches}
+				{teamsById}
+				bonuses={data.bonuses}
+				readonly
+				onSelectWinner={() => {}}
+				onToggleBonus={() => {}}
+			/>
+		{/each}
+	{:else}
+		{#each earlyRounds as round (round.roundNumber)}
+			<h3 class="round-title">{round.roundName}</h3>
+			<RoundView
+				matches={round.matches}
+				{teamsById}
+				bonuses={data.bonuses}
+				readonly
+				onSelectWinner={() => {}}
+				onToggleBonus={() => {}}
+			/>
+		{/each}
+	{/if}
 	{#if thirdPlaceMatch}
 		<h3 class="round-title">Finale 3°/4° posto</h3>
 		<RoundView matches={[thirdPlaceMatch]} {teamsById} bonuses={data.bonuses} readonly onSelectWinner={() => {}} onToggleBonus={() => {}} />
@@ -100,6 +120,14 @@
 		font-size: 13px;
 		color: var(--color-primary);
 		margin: 16px 0 8px;
+	}
+	.bye-note {
+		background: #fff8e1;
+		border: 1px solid #f0d878;
+		border-radius: 12px;
+		padding: 10px 14px;
+		font-size: 13px;
+		margin: 0 0 8px;
 	}
 	.reopen-btn {
 		margin-top: 24px;

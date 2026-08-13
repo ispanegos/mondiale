@@ -1,6 +1,7 @@
 export type TournamentStatus = 'draft' | 'active' | 'completed';
+export type TournamentFormat = 'knockout' | 'swiss';
 export type DrawMode = 'random' | 'manual';
-export type BracketType = 'main' | 'third_place';
+export type BracketType = 'main' | 'third_place' | 'swiss';
 export type MatchStatus = 'pending' | 'ready' | 'completed';
 export type NextMatchSlot = 'A' | 'B';
 export type PointEventType = 'match_win' | 'match_bonus' | 'placement_bonus';
@@ -24,6 +25,7 @@ export interface TournamentRow {
 	size: 8 | 16 | 32 | 64;
 	status: TournamentStatus;
 	draw_mode: DrawMode;
+	format: TournamentFormat;
 	champion_team_id: string | null;
 	runner_up_team_id: string | null;
 	third_team_id: string | null;
@@ -41,6 +43,11 @@ export interface TournamentTeamRow {
 	seed_position: number;
 	final_position: number | null;
 	placement_points: number;
+	swiss_wins: number;
+	swiss_losses: number;
+	swiss_eliminated: boolean;
+	swiss_eliminated_round: number | null;
+	swiss_bye: boolean;
 	created_at: string;
 }
 
@@ -58,6 +65,7 @@ export interface MatchRow {
 	next_match_id: string | null;
 	next_match_slot: NextMatchSlot | null;
 	status: MatchStatus;
+	score_group: string | null;
 	played_at: string | null;
 	created_at: string;
 	updated_at: string;
@@ -168,7 +176,18 @@ export interface Database {
 				};
 				Returns: string;
 			};
+			create_swiss_tournament: {
+				Args: {
+					p_name: string;
+					p_team_ids: string[];
+				};
+				Returns: string;
+			};
 			select_match_winner: {
+				Args: { p_match_id: string; p_winner_team_id: string };
+				Returns: undefined;
+			};
+			select_swiss_match_winner: {
 				Args: { p_match_id: string; p_winner_team_id: string };
 				Returns: undefined;
 			};

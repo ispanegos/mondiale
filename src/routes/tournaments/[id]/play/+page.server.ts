@@ -31,6 +31,20 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
+	selectSwissWinner: async ({ request, locals, params }) => {
+		const formData = await request.formData();
+		const matchId = String(formData.get('match_id'));
+		const winnerTeamId = String(formData.get('winner_team_id'));
+
+		const { error: rpcError } = await locals.supabase.rpc('select_swiss_match_winner', {
+			p_match_id: matchId,
+			p_winner_team_id: winnerTeamId
+		});
+
+		if (rpcError) return fail(400, { error: rpcError.message });
+		return { success: true };
+	},
+
 	toggleBonus: async ({ request, locals }) => {
 		const formData = await request.formData();
 		const matchId = String(formData.get('match_id'));

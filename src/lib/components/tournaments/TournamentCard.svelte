@@ -27,7 +27,11 @@
 			<h3>{tournament.name}</h3>
 			<span class="badge {tournament.status}">{statusLabel[tournament.status]}</span>
 		</div>
-		<p class="meta">{tournament.size} squadre · {formatDate(tournament.completed_at ?? tournament.created_at)}</p>
+		<p class="meta">
+			{tournament.size} squadre
+			{#if tournament.format === 'swiss'}· Svizzero{/if}
+			· {formatDate(tournament.completed_at ?? tournament.created_at)}
+		</p>
 	</a>
 
 	<div class="actions">

@@ -26,7 +26,25 @@ export function groupMainBracketByRound(matches: MatchRow[]): RoundGroup[] {
 		}));
 }
 
-/** Trova la finale per il terzo/quarto posto, se esiste. */
+/** Raggruppa le partite del turno svizzero (bracket_type='swiss') per turno, ordinate. */
+export function groupSwissRoundsByRound(matches: MatchRow[]): RoundGroup[] {
+	const swiss = matches.filter((m) => m.bracket_type === 'swiss');
+	const byRound = new Map<number, MatchRow[]>();
+
+	for (const m of swiss) {
+		const list = byRound.get(m.round_number) ?? [];
+		list.push(m);
+		byRound.set(m.round_number, list);
+	}
+
+	return [...byRound.entries()]
+		.sort(([a], [b]) => a - b)
+		.map(([roundNumber, list]) => ({
+			roundNumber,
+			roundName: list[0]?.round_name ?? `Turno ${roundNumber}`,
+			matches: list.sort((a, b) => a.match_number - b.match_number)
+		}));
+}
 export function findThirdPlaceMatch(matches: MatchRow[]): MatchRow | undefined {
 	return matches.find((m) => m.bracket_type === 'third_place');
 }

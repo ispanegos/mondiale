@@ -1,15 +1,33 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import RoundView from '$lib/components/tournaments/RoundView.svelte';
-	import { groupMainBracketByRound, findThirdPlaceMatch, tournamentIsReadyToComplete } from '$lib/utils/bracket';
+	import {
+		groupMainBracketByRound,
+		groupSwissRoundsByRound,
+		findThirdPlaceMatch,
+		tournamentIsReadyToComplete
+	} from '$lib/utils/bracket';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
+	const isSwiss = $derived(data.tournament.format === 'swiss');
+
+	// --- eliminazione diretta ---
 	const allRounds = $derived(groupMainBracketByRound(data.matches));
 	// il turno finale viene unito alla finalina in un'unica tab "Finali"
-	const earlyRounds = $derived(allRounds.slice(0, -1));
-	const finalRound = $derived(allRounds[allRounds.length - 1]);
+	const earlyRounds = $derived(isSwiss ? [] : allRounds.slice(0, -1));
+	const finalRound = $derived(isSwiss ? undefined : allRounds[allRounds.length - 1]);
+
+	// --- svizzero ---
+	const swissRounds = $derived(isSwiss ? groupSwissRoundsByRound(data.matches) : []);
+	const mainStageRounds = $derived(isSwiss ? groupMainBracketByRound(data.matches) : []);
+	const swissFinalsReady = $derived(mainStageRounds.length > 0);
+	const swissFinalRound = $derived(mainStageRounds[mainStageRounds.length - 1]);
+	const byeTeam = $derived(
+		data.tournamentTeams.find((tt: any) => tt.swiss_bye)?.teams ?? null
+	);
+
 	const thirdPlaceMatch = $derived(findThirdPlaceMatch(data.matches));
 	const readyToComplete = $derived(tournamentIsReadyToComplete(data.matches));
 
@@ -19,6 +37,11 @@
 
 	// tab attiva: il primo turno non ancora completato, o le finali
 	function firstIncompleteTab(): number | 'finals' {
+		if (isSwiss) {
+			const idx = swissRounds.findIndex((r) => r.matches.some((m) => m.status !== 'completed'));
+			if (idx !== -1) return idx;
+			return 'finals';
+		}
 		const idx = earlyRounds.findIndex((r) => r.matches.some((m) => m.status !== 'completed'));
 		if (idx !== -1) return idx;
 		return 'finals';
@@ -38,6 +61,7 @@
 	let toggleBonusEnabled = $state('true');
 
 	let winnerFormEl: HTMLFormElement | undefined = $state();
+	let swissWinnerFormEl: HTMLFormElement | undefined = $state();
 	let bonusFormEl: HTMLFormElement | undefined = $state();
 
 	function handleSelectWinner(matchId: string, teamId: string) {
@@ -45,7 +69,12 @@
 		pendingMatchId = matchId;
 		selectWinnerMatchId = matchId;
 		selectWinnerTeamId = teamId;
-		queueMicrotask(() => winnerFormEl?.requestSubmit());
+		const match = data.matches.find((m) => m.id === matchId);
+		if (match?.bracket_type === 'swiss') {
+			queueMicrotask(() => swissWinnerFormEl?.requestSubmit());
+		} else {
+			queueMicrotask(() => winnerFormEl?.requestSubmit());
+		}
 	}
 
 	function handleToggleBonus(matchId: string, teamId: string, enabled: boolean) {
@@ -63,7 +92,7 @@
 <div class="page">
 	<header>
 		<h1>{data.tournament.name}</h1>
-		<p class="meta">{data.tournament.size} squadre</p>
+		<p class="meta">{data.tournament.size} squadre · {isSwiss ? 'Svizzero' : 'Eliminazione diretta'}</p>
 	</header>
 
 	{#if form?.error}
@@ -71,22 +100,37 @@
 	{/if}
 
 	<div class="tabs" role="tablist">
-		{#each earlyRounds as round, i (round.roundNumber)}
-			<button
-				type="button"
-				role="tab"
-				aria-selected={activeTab === i}
-				class:active={activeTab === i}
-				onclick={() => (activeTab = i)}
-			>
-				{round.roundName}
-			</button>
-		{/each}
+		{#if isSwiss}
+			{#each swissRounds as round, i (round.roundNumber)}
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === i}
+					class:active={activeTab === i}
+					onclick={() => (activeTab = i)}
+				>
+					{round.roundName}
+				</button>
+			{/each}
+		{:else}
+			{#each earlyRounds as round, i (round.roundNumber)}
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === i}
+					class:active={activeTab === i}
+					onclick={() => (activeTab = i)}
+				>
+					{round.roundName}
+				</button>
+			{/each}
+		{/if}
 		<button
 			type="button"
 			role="tab"
 			aria-selected={activeTab === 'finals'}
 			class:active={activeTab === 'finals'}
+			disabled={isSwiss && !swissFinalsReady}
 			onclick={() => (activeTab = 'finals')}
 		>
 			Finali
@@ -94,19 +138,40 @@
 	</div>
 
 	<div class="round-content">
-		{#each earlyRounds as round, i (round.roundNumber)}
-			{#if activeTab === i}
-				<RoundView
-					matches={round.matches}
-					{teamsById}
-					bonuses={data.bonuses}
-					{pendingMatchId}
-					onSelectWinner={handleSelectWinner}
-					onToggleBonus={handleToggleBonus}
-				/>
+		{#if isSwiss}
+			{#each swissRounds as round, i (round.roundNumber)}
+				{#if activeTab === i}
+					{#if round.roundNumber === 7 && byeTeam}
+						<p class="bye-note">🎖️ <strong>{byeTeam.name}</strong> è imbattuta: passa alle finali senza giocare questo turno.</p>
+					{/if}
+					<RoundView
+						matches={round.matches}
+						{teamsById}
+						bonuses={data.bonuses}
+						{pendingMatchId}
+						onSelectWinner={handleSelectWinner}
+						onToggleBonus={handleToggleBonus}
+					/>
+				{/if}
+			{/each}
+			{#if activeTab === 'finals' && !swissFinalsReady}
+				<p class="hint-block">Le finali si sblocca­no dopo il turno 7 (bye + spareggio a 6).</p>
 			{/if}
-		{/each}
-		{#if activeTab === 'finals'}
+		{:else}
+			{#each earlyRounds as round, i (round.roundNumber)}
+				{#if activeTab === i}
+					<RoundView
+						matches={round.matches}
+						{teamsById}
+						bonuses={data.bonuses}
+						{pendingMatchId}
+						onSelectWinner={handleSelectWinner}
+						onToggleBonus={handleToggleBonus}
+					/>
+				{/if}
+			{/each}
+		{/if}
+		{#if activeTab === 'finals' && (!isSwiss || swissFinalsReady)}
 			{#if thirdPlaceMatch}
 				<h2 class="section-title">Finale 3°/4° posto</h2>
 				<RoundView
@@ -118,10 +183,10 @@
 					onToggleBonus={handleToggleBonus}
 				/>
 			{/if}
-			{#if finalRound}
+			{#if isSwiss ? swissFinalRound : finalRound}
 				<h2 class="section-title">Finale</h2>
 				<RoundView
-					matches={finalRound.matches}
+					matches={(isSwiss ? swissFinalRound : finalRound).matches}
 					{teamsById}
 					bonuses={data.bonuses}
 					{pendingMatchId}
@@ -144,6 +209,22 @@
 		bind:this={winnerFormEl}
 		method="POST"
 		action="?/selectWinner"
+		style="display: none"
+		use:enhance={() => {
+			return async ({ update }) => {
+				await update();
+				pendingMatchId = null;
+			};
+		}}
+	>
+		<input type="hidden" name="match_id" value={selectWinnerMatchId} />
+		<input type="hidden" name="winner_team_id" value={selectWinnerTeamId} />
+	</form>
+
+	<form
+		bind:this={swissWinnerFormEl}
+		method="POST"
+		action="?/selectSwissWinner"
 		style="display: none"
 		use:enhance={() => {
 			return async ({ update }) => {
@@ -217,6 +298,24 @@
 		background: var(--color-primary);
 		border-color: var(--color-primary);
 		color: white;
+	}
+	.tabs button:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+	.bye-note {
+		background: #fff8e1;
+		border: 1px solid #f0d878;
+		border-radius: 12px;
+		padding: 10px 14px;
+		font-size: 13px;
+		margin: 0 0 12px;
+	}
+	.hint-block {
+		color: var(--color-text-secondary);
+		font-size: 13px;
+		text-align: center;
+		padding: 24px 12px;
 	}
 	.section-title {
 		font-size: 13px;

@@ -9,6 +9,7 @@
 
 	let step = $state(1);
 	let name = $state('');
+	let format = $state<'knockout' | 'swiss'>('knockout');
 	let size = $state<8 | 16 | 32 | 64 | null>(null);
 	let selected = $state<Set<string>>(new Set());
 	let drawMode = $state<'random' | 'manual'>('random');
@@ -20,6 +21,17 @@
 	const filteredTeams = $derived(
 		data.teams.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
 	);
+
+	// Sequenza di step effettiva: per lo svizzero (fisso a 64 squadre, sempre
+	// sorteggio casuale) si saltano lo step "numero squadre" e "ordine tabellone".
+	const stepSequence = $derived(
+		format === 'swiss' ? [1, 2, 4, 6] : [1, 2, 3, 4, 5, 6]
+	);
+	const stepIndex = $derived(stepSequence.indexOf(step));
+
+	$effect(() => {
+		if (format === 'swiss') size = 64;
+	});
 
 	function toggleTeam(id: string) {
 		const next = new Set(selected);
@@ -48,9 +60,20 @@
 
 	function canGoNext(): boolean {
 		if (step === 1) return !nameError && name.trim().length >= 2;
-		if (step === 2) return size !== null;
-		if (step === 3) return size !== null && selected.size === size;
+		if (step === 2) return format === 'knockout' || format === 'swiss';
+		if (step === 3) return size !== null;
+		if (step === 4) return size !== null && selected.size === size;
 		return true;
+	}
+
+	function goNext() {
+		const idx = stepSequence.indexOf(step);
+		if (idx < stepSequence.length - 1) step = stepSequence[idx + 1];
+	}
+
+	function goBack() {
+		const idx = stepSequence.indexOf(step);
+		if (idx > 0) step = stepSequence[idx - 1];
 	}
 </script>
 
@@ -60,8 +83,8 @@
 
 <div class="page">
 	<div class="steps-indicator">
-		{#each [1, 2, 3, 4, 5] as s (s)}
-			<span class:active={s === step} class:done={s < step}></span>
+		{#each stepSequence as s (s)}
+			<span class:active={s === step} class:done={stepSequence.indexOf(s) < stepIndex}></span>
 		{/each}
 	</div>
 
@@ -77,6 +100,23 @@
 			{#if nameError}<p class="error">{nameError}</p>{/if}
 		</section>
 	{:else if step === 2}
+		<section>
+			<h1>Formato del torneo</h1>
+			<div class="draw-options">
+				<button type="button" class:selected={format === 'knockout'} onclick={() => (format = 'knockout')}>
+					🏆 Eliminazione diretta
+					<span class="hint">Tabellone classico, tornei da 8, 16, 32 o 64 squadre.</span>
+				</button>
+				<button type="button" class:selected={format === 'swiss'} onclick={() => (format = 'swiss')}>
+					🔀 Svizzero
+					<span class="hint">
+						Solo 64 squadre. Abbinamenti per punteggio (V-P), eliminazione a 2 sconfitte, finale a 4 con
+						semifinali sorteggiate.
+					</span>
+				</button>
+			</div>
+		</section>
+	{:else if step === 3}
 		<section>
 			<h1>Numero di squadre</h1>
 			<div class="size-cards">
@@ -98,7 +138,7 @@
 				</button>
 			</div>
 		</section>
-	{:else if step === 3 && size}
+	{:else if step === 4 && size}
 		<section>
 			<h1>Seleziona le squadre</h1>
 			<p class="counter">{selected.size} di {size} selezionate</p>
@@ -125,7 +165,7 @@
 				{/each}
 			</ul>
 		</section>
-	{:else if step === 4}
+	{:else if step === 5}
 		<section>
 			<h1>Ordine del tabellone</h1>
 			<div class="draw-options">
@@ -140,16 +180,23 @@
 				<p class="hint">Verranno usate nell'ordine in cui le hai selezionate al passaggio precedente.</p>
 			{/if}
 		</section>
-	{:else if step === 5 && size}
+	{:else if step === 6 && size}
 		<section>
 			<h1>Riepilogo</h1>
 			<dl class="summary">
 				<dt>Nome</dt>
 				<dd>{name}</dd>
+				<dt>Formato</dt>
+				<dd>{format === 'knockout' ? 'Eliminazione diretta' : 'Svizzero'}</dd>
 				<dt>Squadre</dt>
 				<dd>{size}</dd>
-				<dt>Sorteggio</dt>
-				<dd>{drawMode === 'random' ? 'Casuale' : 'Manuale'}</dd>
+				{#if format === 'knockout'}
+					<dt>Sorteggio</dt>
+					<dd>{drawMode === 'random' ? 'Casuale' : 'Manuale'}</dd>
+				{:else}
+					<dt>Sorteggio</dt>
+					<dd>Casuale (turno 1 e semifinali finali)</dd>
+				{/if}
 			</dl>
 
 			{#if form?.error}
@@ -168,6 +215,7 @@
 				}}
 			>
 				<input type="hidden" name="name" value={name} />
+				<input type="hidden" name="format" value={format} />
 				<input type="hidden" name="size" value={size} />
 				<input type="hidden" name="draw_mode" value={drawMode} />
 				{#each selected as id (id)}
@@ -181,11 +229,11 @@
 	{/if}
 
 	<div class="nav-buttons">
-		{#if step > 1}
-			<button type="button" class="ghost" onclick={() => (step -= 1)}>Indietro</button>
+		{#if stepIndex > 0}
+			<button type="button" class="ghost" onclick={goBack}>Indietro</button>
 		{/if}
-		{#if step < 5}
-			<button type="button" class="primary" disabled={!canGoNext()} onclick={() => (step += 1)}>Avanti</button>
+		{#if stepIndex < stepSequence.length - 1}
+			<button type="button" class="primary" disabled={!canGoNext()} onclick={goNext}>Avanti</button>
 		{/if}
 	</div>
 </div>
@@ -312,6 +360,11 @@
 		font-size: 15px;
 		cursor: pointer;
 		min-height: 44px;
+	}
+	.draw-options button .hint {
+		display: block;
+		margin-top: 4px;
+		font-weight: 400;
 	}
 	.draw-options button.selected {
 		border-color: var(--color-primary);
