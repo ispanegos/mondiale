@@ -3,7 +3,7 @@
 	import TournamentCelebration from '$lib/components/tournaments/TournamentCelebration.svelte';
 	import RoundView from '$lib/components/tournaments/RoundView.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import { groupMainBracketByRound, groupSwissRoundsByRound, findThirdPlaceMatch } from '$lib/utils/bracket';
+	import { groupMainBracketByRound, groupSwissRoundsByRound, groupMatchesByScoreGroup, findThirdPlaceMatch } from '$lib/utils/bracket';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -51,14 +51,17 @@
 			{#if round.roundNumber === 7 && byeTeam}
 				<p class="bye-note">🎖️ <strong>{byeTeam.name}</strong> imbattuta: bye diretto alle finali.</p>
 			{/if}
-			<RoundView
-				matches={round.matches}
-				{teamsById}
-				bonuses={data.bonuses}
-				readonly
-				onSelectWinner={() => {}}
-				onToggleBonus={() => {}}
-			/>
+			{#each groupMatchesByScoreGroup(round.matches) as group (group.scoreGroup)}
+				<h4 class="score-group-title">{group.scoreGroup}</h4>
+				<RoundView
+					matches={group.matches}
+					{teamsById}
+					bonuses={data.bonuses}
+					readonly
+					onSelectWinner={() => {}}
+					onToggleBonus={() => {}}
+				/>
+			{/each}
 		{/each}
 	{:else}
 		{#each earlyRounds as round (round.roundNumber)}
@@ -128,6 +131,16 @@
 		font-size: 13px;
 		color: var(--color-primary);
 		margin: 16px 0 8px;
+	}
+	.score-group-title {
+		display: inline-block;
+		background: var(--color-primary);
+		color: white;
+		font-size: 12px;
+		font-weight: 800;
+		padding: 3px 10px;
+		border-radius: 999px;
+		margin: 10px 0 6px;
 	}
 	.bye-note {
 		background: #fff8e1;

@@ -26,6 +26,27 @@ export function groupMainBracketByRound(matches: MatchRow[]): RoundGroup[] {
 		}));
 }
 
+/** Raggruppa le partite di un turno svizzero per "girone" di punteggio (score_group), ordinate dal più vincente al meno vincente. */
+export function groupMatchesByScoreGroup(matches: MatchRow[]): { scoreGroup: string; matches: MatchRow[] }[] {
+	const byGroup = new Map<string, MatchRow[]>();
+	for (const m of matches) {
+		const key = m.score_group ?? '—';
+		const list = byGroup.get(key) ?? [];
+		list.push(m);
+		byGroup.set(key, list);
+	}
+
+	return [...byGroup.entries()]
+		.sort(([a], [b]) => {
+			const [wa, la] = a.split('-').map(Number);
+			const [wb, lb] = b.split('-').map(Number);
+			if (Number.isNaN(wa) || Number.isNaN(wb)) return a.localeCompare(b);
+			if (wb !== wa) return wb - wa;
+			return la - lb;
+		})
+		.map(([scoreGroup, list]) => ({ scoreGroup, matches: list }));
+}
+
 /** Raggruppa le partite del turno svizzero (bracket_type='swiss') per turno, ordinate. */
 export function groupSwissRoundsByRound(matches: MatchRow[]): RoundGroup[] {
 	const swiss = matches.filter((m) => m.bracket_type === 'swiss');

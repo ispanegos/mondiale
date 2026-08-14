@@ -4,6 +4,7 @@
 	import {
 		groupMainBracketByRound,
 		groupSwissRoundsByRound,
+		groupMatchesByScoreGroup,
 		findThirdPlaceMatch,
 		tournamentIsReadyToComplete
 	} from '$lib/utils/bracket';
@@ -53,6 +54,13 @@
 		activeTab = firstIncompleteTab();
 	});
 
+	// porta sempre in vista la tab selezionata (utile con molti turni, es. torneo da 64)
+	let tabsEl: HTMLDivElement | undefined = $state();
+	$effect(() => {
+		activeTab;
+		tabsEl?.querySelector('button.active')?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+	});
+
 	let pendingMatchId = $state<string | null>(null);
 
 	let selectWinnerMatchId = $state('');
@@ -100,7 +108,7 @@
 		<p class="error" role="alert">{form.error}</p>
 	{/if}
 
-	<div class="tabs" role="tablist">
+	<div class="tabs" role="tablist" bind:this={tabsEl}>
 		{#if isSwiss}
 			{#each swissRounds as round, i (round.roundNumber)}
 				<button
@@ -145,14 +153,17 @@
 					{#if round.roundNumber === 7 && byeTeam}
 						<p class="bye-note">🎖️ <strong>{byeTeam.name}</strong> è imbattuta: passa alle finali senza giocare questo turno.</p>
 					{/if}
-					<RoundView
-						matches={round.matches}
-						{teamsById}
-						bonuses={data.bonuses}
-						{pendingMatchId}
-						onSelectWinner={handleSelectWinner}
-						onToggleBonus={handleToggleBonus}
-					/>
+					{#each groupMatchesByScoreGroup(round.matches) as group (group.scoreGroup)}
+						<h3 class="score-group-title">{group.scoreGroup}</h3>
+						<RoundView
+							matches={group.matches}
+							{teamsById}
+							bonuses={data.bonuses}
+							{pendingMatchId}
+							onSelectWinner={handleSelectWinner}
+							onToggleBonus={handleToggleBonus}
+						/>
+					{/each}
 				{/if}
 			{/each}
 			{#if activeTab === 'finals' && !swissFinalsReady}
@@ -316,6 +327,19 @@
 	.tabs button:disabled {
 		opacity: 0.4;
 		cursor: default;
+	}
+	.score-group-title {
+		display: inline-block;
+		background: var(--color-primary);
+		color: white;
+		font-size: 13px;
+		font-weight: 800;
+		padding: 4px 12px;
+		border-radius: 999px;
+		margin: 16px 0 8px;
+	}
+	.round-content > .score-group-title:first-child {
+		margin-top: 0;
 	}
 	.bye-note {
 		background: #fff8e1;
