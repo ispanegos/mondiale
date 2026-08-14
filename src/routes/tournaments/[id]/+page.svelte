@@ -11,6 +11,8 @@
 	const isSwiss = $derived(data.tournament.format === 'swiss');
 	const rounds = $derived(groupMainBracketByRound(data.matches));
 	const earlyRounds = $derived(isSwiss ? [] : rounds.slice(0, -1));
+	// per lo svizzero le "finali" sono 2 turni bracket_type='main': Semifinali + Finale
+	const swissSemiRounds = $derived(isSwiss ? rounds.slice(0, -1) : []);
 	const finalRound = $derived(rounds[rounds.length - 1]);
 	const swissRounds = $derived(isSwiss ? groupSwissRoundsByRound(data.matches) : []);
 	const byeTeam = $derived(data.tournamentTeams.find((tt: any) => tt.swiss_bye)?.teams ?? null);
@@ -69,6 +71,12 @@
 				onSelectWinner={() => {}}
 				onToggleBonus={() => {}}
 			/>
+		{/each}
+	{/if}
+	{#if isSwiss}
+		{#each swissSemiRounds as round (round.roundNumber)}
+			<h3 class="round-title">{round.roundName}</h3>
+			<RoundView matches={round.matches} {teamsById} bonuses={data.bonuses} readonly onSelectWinner={() => {}} onToggleBonus={() => {}} />
 		{/each}
 	{/if}
 	{#if thirdPlaceMatch}
