@@ -189,6 +189,10 @@ export interface Database {
 				Args: { p_match_id: string; p_winner_team_id: string };
 				Returns: undefined;
 			};
+			correct_swiss_match_and_rewind: {
+				Args: { p_match_id: string; p_winner_team_id: string };
+				Returns: undefined;
+			};
 			toggle_match_bonus: {
 				Args: { p_match_id: string; p_team_id: string; p_enabled: boolean };
 				Returns: undefined;

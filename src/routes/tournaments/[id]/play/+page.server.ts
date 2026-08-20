@@ -41,6 +41,20 @@ export const actions: Actions = {
 			p_winner_team_id: winnerTeamId
 		});
 
+		if (rpcError) return fail(400, { error: rpcError.message, matchId, winnerTeamId });
+		return { success: true };
+	},
+
+	correctSwissWinner: async ({ request, locals, params }) => {
+		const formData = await request.formData();
+		const matchId = String(formData.get('match_id'));
+		const winnerTeamId = String(formData.get('winner_team_id'));
+
+		const { error: rpcError } = await locals.supabase.rpc('correct_swiss_match_and_rewind', {
+			p_match_id: matchId,
+			p_winner_team_id: winnerTeamId
+		});
+
 		if (rpcError) return fail(400, { error: rpcError.message });
 		return { success: true };
 	},

@@ -71,6 +71,7 @@
 
 	let winnerFormEl: HTMLFormElement | undefined = $state();
 	let swissWinnerFormEl: HTMLFormElement | undefined = $state();
+	let correctFormEl: HTMLFormElement | undefined = $state();
 	let bonusFormEl: HTMLFormElement | undefined = $state();
 
 	function handleSelectWinner(matchId: string, teamId: string) {
@@ -105,7 +106,28 @@
 	</header>
 
 	{#if form?.error}
-		<p class="error" role="alert">{form.error}</p>
+		{#if form.error.includes('ROUND_ALREADY_ADVANCED')}
+			<div class="error-block" role="alert">
+				<p>
+					Questo turno è già chiuso: il turno successivo è già stato generato. Puoi correggerlo comunque, ma
+					<strong>tutti i turni giocati dopo questo (e le eventuali finali) verranno cancellati e rigenerati da capo</strong>
+					— dovrai rigiocarli.
+				</p>
+				<button
+					type="button"
+					class="danger"
+					disabled={pendingMatchId !== null}
+					onclick={() => {
+						pendingMatchId = selectWinnerMatchId;
+						queueMicrotask(() => correctFormEl?.requestSubmit());
+					}}
+				>
+					Correggi e rigenera i turni successivi
+				</button>
+			</div>
+		{:else}
+			<p class="error" role="alert">{form.error}</p>
+		{/if}
 	{/if}
 
 	<div class="tabs" role="tablist" bind:this={tabsEl}>
@@ -263,6 +285,22 @@
 	</form>
 
 	<form
+		bind:this={correctFormEl}
+		method="POST"
+		action="?/correctSwissWinner"
+		style="display: none"
+		use:enhance={() => {
+			return async ({ update }) => {
+				await update();
+				pendingMatchId = null;
+			};
+		}}
+	>
+		<input type="hidden" name="match_id" value={selectWinnerMatchId} />
+		<input type="hidden" name="winner_team_id" value={selectWinnerTeamId} />
+	</form>
+
+	<form
 		bind:this={bonusFormEl}
 		method="POST"
 		action="?/toggleBonus"
@@ -297,6 +335,34 @@
 		border-radius: 12px;
 		padding: 10px 14px;
 		font-size: 14px;
+	}
+	.error-block {
+		background: #fdecea;
+		border: 1px solid #f2b8b0;
+		border-radius: 14px;
+		padding: 14px;
+		margin-bottom: 12px;
+	}
+	.error-block p {
+		margin: 0 0 12px;
+		font-size: 14px;
+		color: #7a1a10;
+		line-height: 1.4;
+	}
+	.error-block button.danger {
+		width: 100%;
+		background: #b3261e;
+		color: white;
+		border: none;
+		border-radius: 12px;
+		padding: 12px;
+		font-weight: 700;
+		font-size: 14px;
+		min-height: 44px;
+		cursor: pointer;
+	}
+	.error-block button.danger:disabled {
+		opacity: 0.5;
 	}
 	.tabs {
 		display: flex;
