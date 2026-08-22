@@ -63,11 +63,13 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const matchId = String(formData.get('match_id'));
 		const teamId = String(formData.get('team_id'));
+		const bonusType = String(formData.get('bonus_type'));
 		const enabled = formData.get('enabled') === 'true';
 
 		const { error: rpcError } = await locals.supabase.rpc('toggle_match_bonus', {
 			p_match_id: matchId,
 			p_team_id: teamId,
+			p_bonus_type: bonusType as 'bonus_3' | 'bonus_2',
 			p_enabled: enabled
 		});
 

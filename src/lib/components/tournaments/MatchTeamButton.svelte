@@ -6,7 +6,8 @@
 		team,
 		isWinner,
 		isLoser,
-		bonusChecked,
+		bonus3Checked,
+		bonus2Checked,
 		disabled,
 		readonly,
 		onSelect,
@@ -15,11 +16,12 @@
 		team: TeamRow | null | undefined;
 		isWinner: boolean;
 		isLoser: boolean;
-		bonusChecked: boolean;
+		bonus3Checked: boolean;
+		bonus2Checked: boolean;
 		disabled: boolean;
 		readonly: boolean;
 		onSelect: () => void;
-		onToggleBonus: () => void;
+		onToggleBonus: (bonusType: 'bonus_3' | 'bonus_2', enabled: boolean) => void;
 	} = $props();
 </script>
 
@@ -34,12 +36,31 @@
 		{#if isWinner}<span class="check" aria-hidden="true">✓</span>{/if}
 	</button>
 	{#if team && !readonly}
-		<label class="bonus-label">
-			<input type="checkbox" checked={bonusChecked} onchange={onToggleBonus} aria-label="Bonus +1 per {team.name}" />
-			<span>+1</span>
-		</label>
-	{:else if team && bonusChecked}
-		<span class="bonus-badge">+1</span>
+		<div class="bonus-group">
+			<label class="bonus-label">
+				<input
+					type="checkbox"
+					checked={bonus3Checked}
+					onchange={() => onToggleBonus('bonus_3', !bonus3Checked)}
+					aria-label="Bonus +3 per {team.name}"
+				/>
+				<span>+3</span>
+			</label>
+			<label class="bonus-label">
+				<input
+					type="checkbox"
+					checked={bonus2Checked}
+					onchange={() => onToggleBonus('bonus_2', !bonus2Checked)}
+					aria-label="Bonus +2 per {team.name}"
+				/>
+				<span>+2</span>
+			</label>
+		</div>
+	{:else if team && (bonus3Checked || bonus2Checked)}
+		<div class="bonus-group">
+			{#if bonus3Checked}<span class="bonus-badge">+3</span>{/if}
+			{#if bonus2Checked}<span class="bonus-badge">+2</span>{/if}
+		</div>
 	{/if}
 </div>
 
@@ -85,14 +106,19 @@
 		color: var(--color-success);
 		font-weight: 800;
 	}
+	.bonus-group {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
 	.bonus-label {
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		font-size: 12px;
+		font-size: 11px;
 		color: var(--color-text-secondary);
-		min-height: 44px;
-		min-width: 44px;
+		min-height: 22px;
+		min-width: 40px;
 		justify-content: center;
 	}
 	.bonus-badge {

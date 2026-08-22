@@ -67,6 +67,7 @@
 	let selectWinnerTeamId = $state('');
 	let toggleBonusMatchId = $state('');
 	let toggleBonusTeamId = $state('');
+	let toggleBonusType = $state('');
 	let toggleBonusEnabled = $state('true');
 
 	let winnerFormEl: HTMLFormElement | undefined = $state();
@@ -87,9 +88,10 @@
 		}
 	}
 
-	function handleToggleBonus(matchId: string, teamId: string, enabled: boolean) {
+	function handleToggleBonus(matchId: string, teamId: string, bonusType: string, enabled: boolean) {
 		toggleBonusMatchId = matchId;
 		toggleBonusTeamId = teamId;
+		toggleBonusType = bonusType;
 		toggleBonusEnabled = String(enabled);
 		queueMicrotask(() => bonusFormEl?.requestSubmit());
 	}
@@ -309,6 +311,7 @@
 	>
 		<input type="hidden" name="match_id" value={toggleBonusMatchId} />
 		<input type="hidden" name="team_id" value={toggleBonusTeamId} />
+		<input type="hidden" name="bonus_type" value={toggleBonusType} />
 		<input type="hidden" name="enabled" value={toggleBonusEnabled} />
 	</form>
 </div>

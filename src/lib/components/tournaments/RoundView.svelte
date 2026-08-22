@@ -1,6 +1,6 @@
 <script lang="ts">
 	import MatchCard from './MatchCard.svelte';
-	import type { MatchBonusRow, MatchRow, TeamRow } from '$lib/types/database';
+	import type { BonusType, MatchBonusRow, MatchRow, TeamRow } from '$lib/types/database';
 
 	let {
 		matches,
@@ -17,7 +17,7 @@
 		readonly?: boolean;
 		pendingMatchId?: string | null;
 		onSelectWinner: (matchId: string, teamId: string) => void;
-		onToggleBonus: (matchId: string, teamId: string, enabled: boolean) => void;
+		onToggleBonus: (matchId: string, teamId: string, bonusType: BonusType, enabled: boolean) => void;
 	} = $props();
 </script>
 
@@ -31,7 +31,7 @@
 			{readonly}
 			pending={pendingMatchId === match.id}
 			onSelectWinner={(teamId) => onSelectWinner(match.id, teamId)}
-			onToggleBonus={(teamId, enabled) => onToggleBonus(match.id, teamId, enabled)}
+			onToggleBonus={(teamId, bonusType, enabled) => onToggleBonus(match.id, teamId, bonusType, enabled)}
 		/>
 	{/each}
 </div>

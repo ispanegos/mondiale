@@ -71,11 +71,14 @@ export interface MatchRow {
 	updated_at: string;
 }
 
+export type BonusType = 'bonus_3' | 'bonus_2';
+
 export interface MatchBonusRow {
 	id: string;
 	match_id: string;
 	team_id: string;
-	points: 1;
+	bonus_type: BonusType;
+	points: 2 | 3;
 	created_at: string;
 }
 
@@ -87,6 +90,7 @@ export interface PointEventRow {
 	match_id: string | null;
 	event_type: PointEventType;
 	points: number;
+	bonus_type: BonusType | null;
 	metadata: Record<string, unknown>;
 	created_at: string;
 }
@@ -194,7 +198,7 @@ export interface Database {
 				Returns: undefined;
 			};
 			toggle_match_bonus: {
-				Args: { p_match_id: string; p_team_id: string; p_enabled: boolean };
+				Args: { p_match_id: string; p_team_id: string; p_bonus_type: BonusType; p_enabled: boolean };
 				Returns: undefined;
 			};
 			complete_tournament: {

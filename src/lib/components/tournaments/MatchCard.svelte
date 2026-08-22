@@ -1,6 +1,6 @@
 <script lang="ts">
 	import MatchTeamButton from './MatchTeamButton.svelte';
-	import type { MatchBonusRow, MatchRow, TeamRow } from '$lib/types/database';
+	import type { BonusType, MatchBonusRow, MatchRow, TeamRow } from '$lib/types/database';
 
 	let {
 		match,
@@ -19,11 +19,16 @@
 		readonly?: boolean;
 		pending?: boolean;
 		onSelectWinner: (teamId: string) => void;
-		onToggleBonus: (teamId: string, enabled: boolean) => void;
+		onToggleBonus: (teamId: string, bonusType: BonusType, enabled: boolean) => void;
 	} = $props();
 
-	const bonusTeamIds = $derived(new Set(bonuses.filter((b) => b.match_id === match.id).map((b) => b.team_id)));
+	const matchBonuses = $derived(bonuses.filter((b) => b.match_id === match.id));
 	const canPlay = $derived(match.team_a_id !== null && match.team_b_id !== null);
+
+	function hasBonus(teamId: string | undefined | null, bonusType: BonusType): boolean {
+		if (!teamId) return false;
+		return matchBonuses.some((b) => b.team_id === teamId && b.bonus_type === bonusType);
+	}
 </script>
 
 <div class="match-card" class:completed={match.status === 'completed'}>
@@ -32,22 +37,24 @@
 		team={teamA}
 		isWinner={match.winner_team_id === match.team_a_id && match.status === 'completed'}
 		isLoser={match.status === 'completed' && match.winner_team_id !== match.team_a_id}
-		bonusChecked={teamA ? bonusTeamIds.has(teamA.id) : false}
+		bonus3Checked={hasBonus(teamA?.id, 'bonus_3')}
+		bonus2Checked={hasBonus(teamA?.id, 'bonus_2')}
 		disabled={readonly || pending || !canPlay}
 		{readonly}
 		onSelect={() => teamA && onSelectWinner(teamA.id)}
-		onToggleBonus={() => teamA && onToggleBonus(teamA.id, !bonusTeamIds.has(teamA.id))}
+		onToggleBonus={(bonusType, enabled) => teamA && onToggleBonus(teamA.id, bonusType, enabled)}
 	/>
 	<div class="vs">vs</div>
 	<MatchTeamButton
 		team={teamB}
 		isWinner={match.winner_team_id === match.team_b_id && match.status === 'completed'}
 		isLoser={match.status === 'completed' && match.winner_team_id !== match.team_b_id}
-		bonusChecked={teamB ? bonusTeamIds.has(teamB.id) : false}
+		bonus3Checked={hasBonus(teamB?.id, 'bonus_3')}
+		bonus2Checked={hasBonus(teamB?.id, 'bonus_2')}
 		disabled={readonly || pending || !canPlay}
 		{readonly}
 		onSelect={() => teamB && onSelectWinner(teamB.id)}
-		onToggleBonus={() => teamB && onToggleBonus(teamB.id, !bonusTeamIds.has(teamB.id))}
+		onToggleBonus={(bonusType, enabled) => teamB && onToggleBonus(teamB.id, bonusType, enabled)}
 	/>
 </div>
 

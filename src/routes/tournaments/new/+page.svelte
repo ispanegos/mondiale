@@ -20,12 +20,18 @@
 
 	// Il nome del torneo e' automatico (ED n / Swiss n, sequenziale): niente
 	// step per digitarlo. Per lo svizzero (fisso a 64 squadre, sempre sorteggio
-	// casuale) si saltano anche lo step "numero squadre" e "ordine tabellone".
-	const stepSequence = $derived(format === 'swiss' ? [1, 3, 5] : [1, 2, 3, 4, 5]);
+	// casuale) si saltano anche gli step "numero squadre", "seleziona squadre"
+	// e "ordine tabellone": si parte subito con tutte le squadre disponibili.
+	const stepSequence = $derived(format === 'swiss' ? [1, 5] : [1, 2, 3, 4, 5]);
 	const stepIndex = $derived(stepSequence.indexOf(step));
 
+	const swissTeamCountOk = $derived(data.teams.length === 64);
+
 	$effect(() => {
-		if (format === 'swiss') size = 64;
+		if (format === 'swiss') {
+			size = 64;
+			selected = new Set(data.teams.map((t) => t.id));
+		}
 	});
 
 	function toggleTeam(id: string) {
@@ -54,7 +60,10 @@
 	}
 
 	function canGoNext(): boolean {
-		if (step === 1) return format === 'knockout' || format === 'swiss';
+		if (step === 1) {
+			if (format === 'swiss') return swissTeamCountOk;
+			return format === 'knockout';
+		}
 		if (step === 2) return size !== null;
 		if (step === 3) return size !== null && selected.size === size;
 		return true;
@@ -98,6 +107,14 @@
 					</span>
 				</button>
 			</div>
+			{#if format === 'swiss' && !swissTeamCountOk}
+				<p class="error">
+					Servono esattamente 64 squadre attive per lo svizzero (ce ne sono {data.teams.length}). Riattiva o
+					disattiva qualche squadra prima di continuare.
+				</p>
+			{:else if format === 'swiss'}
+				<p class="hint">Si parte subito con tutte le 64 squadre, abbinamenti del turno 1 casuali.</p>
+			{/if}
 		</section>
 	{:else if step === 2}
 		<section>
